@@ -1,0 +1,55 @@
+"""
+Checker
+
+Link verification logic. A link is considered broken when the request fails
+or the server answers with a 4xx/5xx status code.
+
+@author adrianpmdev
+"""
+
+import logging
+
+import requests
+
+from app import repository
+from app.config import REQUEST_TIMEOUT_SECONDS, USER_AGENT
+from app.database import get_connection
+
+logger = logging.getLogger(__name__)
+
+HEADERS = {"User-Agent": USER_AGENT}
+
+
+def check_url(url: str) -> tuple[int | None, bool]:
+    """Returns (status_code, is_broken). status_code is None if unreachable."""
+    try:
+        response = requests.head(
+            url, headers=HEADERS, timeout=REQUEST_TIMEOUT_SECONDS, allow_redirects=True
+        )
+        # Some servers do not support HEAD, so retry with GET.
+        if response.status_code in (403, 405):
+            response = requests.get(
+                url, headers=HEADERS, timeout=REQUEST_TIMEOUT_SECONDS, allow_redirects=True
+            )
+    except requests.RequestException as error:
+        logger.info("Unreachable link %s: %s", url, error)
+        return None, True
+
+    return response.status_code, response.status_code >= 400
+
+
+def check_all_products() -> dict:
+    """Checks every product link and stores the result. Returns a summary."""
+    connection = get_connection()
+    try:
+        products = repository.list_products(connection)
+        broken = 0
+        for product in products:
+            status_code, is_broken = check_url(product["url"])
+            repository.save_check_result(connection, product["id"], status_code, is_broken)
+            broken += int(is_broken)
+    finally:
+        connection.close()
+
+    logger.info("Checked %d links, %d broken", len(products), broken)
+    return {"checked": len(products), "broken": broken}
