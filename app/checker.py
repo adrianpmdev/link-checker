@@ -2,12 +2,14 @@
 Checker
 
 Link verification logic. A link is considered broken when the request fails
-or the server answers with a 4xx/5xx status code.
+or the server answers with a 4xx/5xx status code. A lock prevents two
+checks from running at the same time.
 
 @author adrianpmdev
 """
 
 import logging
+import threading
 
 import requests
 
@@ -18,6 +20,12 @@ from app.database import get_connection
 logger = logging.getLogger(__name__)
 
 HEADERS = {"User-Agent": USER_AGENT}
+
+_run_lock = threading.Lock()
+
+
+class CheckAlreadyRunningError(Exception):
+    """Raised when a check is requested while another one is still running."""
 
 
 def check_url(url: str) -> tuple[int | None, bool]:
@@ -39,7 +47,19 @@ def check_url(url: str) -> tuple[int | None, bool]:
 
 
 def check_all_products() -> dict:
-    """Checks every product link and stores the result. Returns a summary."""
+    """Checks every product link and stores the result. Returns a summary.
+
+    Raises CheckAlreadyRunningError if another check is still running.
+    """
+    if not _run_lock.acquire(blocking=False):
+        raise CheckAlreadyRunningError
+    try:
+        return _check_and_save_all()
+    finally:
+        _run_lock.release()
+
+
+def _check_and_save_all() -> dict:
     connection = get_connection()
     try:
         products = repository.list_products(connection)
