@@ -1,59 +1,53 @@
 <div align="center">
 
-# Link Checker
+# 🔗 Link Checker
 
 ### Servicio interno que comprueba periódicamente que los enlaces de los productos siguen funcionando
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+
 [![Author](https://img.shields.io/badge/Author-adrianpmdev-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/adrianpmdev)
 
 </div>
 
 ---
 
-## Descripción
+<br>
 
-Pequeño servicio interno para una tienda online. Guarda los productos y sus enlaces, comprueba todos los enlaces automáticamente cada cierto tiempo y ofrece un endpoint con los productos cuyos enlaces están rotos.
+## 📖 Descripción
 
-## Funcionalidades
+Pequeño **servicio interno para una tienda online**. Guarda los productos y sus enlaces, **los comprueba automáticamente** cada cierto tiempo y ofrece un endpoint con los **productos cuyos enlaces están rotos**.
 
-- Comprobación automática y periódica de los enlaces de todos los productos.
-- Guarda el código HTTP, si el enlace está roto y la fecha de la última comprobación de cada producto.
-- Endpoint con la lista de productos con enlaces rotos.
-- Comprobación bajo demanda sin esperar a la siguiente ejecución programada.
-- Documentación interactiva de la API (Swagger) en `/docs`.
+> 🎯 **Un enlace está roto** cuando la petición falla o el servidor responde con un código 4xx o 5xx.
 
-## Tecnologías
+---
 
-| Tecnología | Uso |
-| --- | --- |
-| Python 3.11+ | Lenguaje |
-| FastAPI | API REST |
-| Requests | Comprobación HTTP de los enlaces |
-| SQLite | Almacenamiento |
+<br>
 
-## Estructura del proyecto
+## 🚀 Funcionalidades
 
-```
-link-checker/
-├── app/
-│   ├── main.py          # Punto de entrada, ciclo de vida y routers
-│   ├── config.py        # Configuración (variables de entorno)
-│   ├── database.py      # Conexión SQLite, esquema y datos de ejemplo
-│   ├── schemas.py       # Modelos Pydantic
-│   ├── repository.py    # Consultas SQL
-│   ├── checker.py       # Lógica de comprobación de enlaces
-│   ├── scheduler.py     # Comprobación periódica en segundo plano
-│   └── routers/
-│       ├── products.py  # Endpoints /products
-│       └── checks.py    # Endpoints /checks
-├── data/                # Base de datos SQLite (se crea al arrancar)
-└── requirements.txt
-```
+- ⏱️ **Comprobación periódica** de todos los enlaces, al arrancar y cada `CHECK_INTERVAL_MINUTES`.
+- 🔁 **Reintento con GET** cuando el servidor no admite `HEAD`.
+- 🔒 **Sin comprobaciones solapadas**: si ya hay una en marcha, la manual responde `409`.
+- 📚 **Documentación de la API** (Swagger) en `/docs`.
 
-## Puesta en marcha
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| GET | `/health` | Estado del servicio |
+| GET | `/products` | Listar todos los productos |
+| POST | `/products` | Añadir un producto |
+| GET | `/products/broken` | Listar los productos con enlaces rotos |
+| POST | `/checks/run` | Lanzar una comprobación ahora |
+
+---
+
+<br>
+
+## ⚙️ Puesta en marcha
+
+Necesitas **Python 3.12 o superior** ([python.org/downloads](https://www.python.org/downloads/)). Desde la carpeta del proyecto:
 
 ```bash
 python -m venv .venv
@@ -62,29 +56,49 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Abre http://localhost:8000/docs. En el primer arranque se crea la base de datos con productos de ejemplo, algunos con enlaces rotos.
+Abre http://localhost:8000/docs. En el primer arranque se crean productos de ejemplo, algunos con enlaces rotos.
 
-### Configuración
+### 🔧 Ajustes
 
 | Variable | Por defecto | Descripción |
 | --- | --- | --- |
 | `DB_PATH` | `data/link_checker.db` | Fichero SQLite |
+| `SEED_SAMPLE_DATA` | `true` | Crear productos de ejemplo si la base de datos está vacía |
 | `CHECK_INTERVAL_MINUTES` | `60` | Minutos entre comprobaciones automáticas |
 | `REQUEST_TIMEOUT_SECONDS` | `10` | Tiempo máximo de espera por enlace |
 
-## Endpoints
+### 🧪 Tests
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/products` | Listar todos los productos |
-| POST | `/products` | Añadir un producto |
-| GET | `/products/broken` | Listar los productos con enlaces rotos |
-| POST | `/checks/run` | Lanzar una comprobación ahora |
+```bash
+python -m pytest
+```
+
+Los tests usan una base de datos temporal y respuestas HTTP falsas: no salen a la red.
 
 ---
 
+<br>
+
+## 📝 Decisiones y límites
+
+- 🧵 **La comprobación periódica vive dentro de la API** y los enlaces se comprueban uno detrás de otro. Es suficiente para un catálogo pequeño; con muchos enlaces convendría comprobarlos en paralelo o en un proceso aparte.
+- ⚠️ **El servicio hace peticiones a las URLs que se añaden**, así que no debe exponerse fuera de la red interna.
+- 🔓 **Sin autenticación ni paginación**, por ser una herramienta interna pequeña.
+
+---
+
+<br>
+
+## 👤 Autor
+
+[@adrianpmdev](https://github.com/adrianpmdev) · Junior Full Stack Developer
+
+---
+
+<br>
+
 <div align="center">
 
-Made in 2026 by [@adrianpmdev](https://github.com/adrianpmdev)
+✨ Made in **2026** by [@adrianpmdev](https://github.com/adrianpmdev) ✨
 
 </div>
