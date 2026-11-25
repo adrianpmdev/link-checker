@@ -8,8 +8,11 @@ SQLite connection handling, schema creation and sample data seeding.
 
 import sqlite3
 from collections.abc import Iterator
+from typing import Annotated
 
-from app.config import DB_PATH
+from fastapi import Depends
+
+from app import config
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS products (
@@ -33,8 +36,8 @@ SAMPLE_PRODUCTS = [
 
 def get_connection() -> sqlite3.Connection:
     """Opens a new SQLite connection that returns rows as dict-like objects."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DB_PATH)
+    config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(config.DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
@@ -48,11 +51,16 @@ def get_db() -> Iterator[sqlite3.Connection]:
         connection.close()
 
 
+DbDep = Annotated[sqlite3.Connection, Depends(get_db)]
+
+
 def init_db() -> None:
-    """Creates the schema and inserts sample products if the table is empty."""
+    """Creates the schema and, if enabled, inserts sample products when the table is empty."""
     connection = get_connection()
     try:
         connection.executescript(SCHEMA)
+        if not config.SEED_SAMPLE_DATA:
+            return
         count = connection.execute("SELECT COUNT(*) FROM products").fetchone()[0]
         if count == 0:
             connection.executemany(

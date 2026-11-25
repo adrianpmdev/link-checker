@@ -42,6 +42,6 @@ app.include_router(products.router)
 app.include_router(checks.router)
 
 
-@app.get("/", tags=["Health"])
+@app.get("/health", tags=["Health"])
 def health():
     return {"status": "ok"}
